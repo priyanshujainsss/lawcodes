@@ -14,15 +14,43 @@ module.exports=async(req,res,next)=>{
     const token=authorization.split(" ")[1];
     jwt.verify(token,jwtsecret,async(err,payload)=>{
         if(err){
-         return res.status(401).send({error:"you must be logged in ",err:err.message})
+         return  res.send({
+            message: "You must be logged in",
+            status: "false",
+            sessionExist: "0",
+            response: {
+              data: {
+                id: null,
+                full_name: null,
+                email: null,
+                mobile: null,
+                token: null,
+              },
+            },
+          });
+        //   res.status(401).send({error:"you must be logged in ",err:err.message})
         }
 
         const {email}=payload;
         const user= await User.findOne({EmailId:email});
         req.user=user;
-        console.log(user.JWTToken == token);
+        // console.log(user.JWTToken == token);
         if(user.JWTToken != token){
-          return res.status(401).send({error:"you must be logged in "});
+          return   res.send({
+            message: "You must be logged in",
+            status: "false",
+            sessionExist: "0",
+            response: {
+              data: {
+                id: null,
+                full_name: null,
+                email: null,
+                mobile: null,
+                token: null,
+              },
+            },
+          });
+        //   res.status(401).send({error:"you must be logged in "});
         }
         next();
     })

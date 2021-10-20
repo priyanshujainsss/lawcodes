@@ -31,7 +31,7 @@ const UserSchema=new Mongoose.Schema({
     }
 })
 UserSchema.pre("save",async function(next){
-    console.log("Presave function called")
+    // console.log("Presave function called")
     if(this.isModified("Password")){
         this.Password=await bcrypt.hash(this.Password,12)
     }

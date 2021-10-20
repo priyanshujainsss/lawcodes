@@ -22,59 +22,97 @@ const transporter = nodemailer.createTransport({
 const userRegister = async (req, res) => {
   const { name, contact, email, password, cpassword } = req.body;
   try {
-    // check is email already registered
-    const found = await User.findOne({ EmailId: email });
-    if (found) {
-      res.send("Email Already Registered");
-    } else {
-      //form validation
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        var errMsg = errors.mapped();
-        var inputData = matchedData(req);
-      } else {
-        var inputData = matchedData(req);
-      }
-
-      const code = Math.floor(1000 + Math.random() * 9000);
-      JSON.stringify(req.body) == JSON.stringify(inputData)
-        ? transporter.sendMail(
-            {
-              to: email,
-              subject: "Verification Code for your law codes account",
-              html: `<h4>Your account verification code is ${code}</h4>`,
+    if (name && contact && email && password && cpassword) {
+      const userfound = await User.findOne({ EmailId: email });
+      if (userfound) {
+        res.send({
+          message: "Email Already registered",
+          status: "false",
+          sessionExist: "0",
+          response: {
+            data: {
+              id: null,
+              full_name: null,
+              email: null,
+              mobile: null,
+              token: null,
             },
-            async function (err, info) {
-              if (err) console.log("error", err.message);
-              else {
-                console.log("email send successfully");
-                res.status(200).json({
-                  msg: "Verification code has been send to your mail id",
-                });
-
-                //Data save code write here
-                //   {
-                const user = new User({
-                  Fullname: name,
-                  EmailId: email,
-                  Contact: contact,
-                  Password: password,
-                  Token: code,
-                  Isblock:false
-                });
-                await user.save();
-                //   }
-              }
-            }
-          )
-        : (console.log(errors),
-          res
-            .status(400)
-            .json({ errors: errMsg, msg: "Please Fill correct Details" }));
+          },
+        });
+      } else {
+        if (password == cpassword) {
+          const code = Math.floor(1000 + Math.random() * 9000);
+          const user = new User({
+            Fullname: name,
+            EmailId: email,
+            Contact: contact,
+            Password: password,
+            Token: code,
+            Isblock: false,
+          });
+          await user.save();
+          res.send({
+            message: "You are signup successfully",
+            status: "true",
+            sessionExist: "0",
+            response: {
+              data: {
+                id: null,
+                full_name: null,
+                email: null,
+                mobile: null,
+                token: null,
+              },
+            },
+          });
+        } else {
+          res.send({
+            message: "Password mismatch",
+            status: "false",
+            sessionExist: "0",
+            response: {
+              data: {
+                id: null,
+                full_name: null,
+                email: null,
+                mobile: null,
+                token: null,
+              },
+            },
+          });
+        }
+      }
+    } else {
+      res.send({
+        message: "Please fill complete details",
+        status: "false",
+        sessionExist: "0",
+        response: {
+          data: {
+            id: null,
+            full_name: null,
+            email: null,
+            mobile: null,
+            token: null,
+          },
+        },
+      });
     }
   } catch (err) {
-    console.log("error on userRegister", err);
-    res.send("Failed to register");
+    res.send({
+      message: "Failed to register",
+      status: "false",
+      sessionExist: "0",
+      response: {
+        data: {
+          id: null,
+          full_name: null,
+          email: null,
+          mobile: null,
+          token: null,
+        },
+      },
+    });
   }
 };
 
@@ -84,29 +122,97 @@ const userLogin = async (req, res) => {
   console.log(req.body);
   try {
     const found = await User.findOne({ EmailId: email });
-
-    if (!found) {
-      res.send({ msg: "Invalid Credentials",status:401 });
+    if (email && password) {
+      if (!found) {
+        res.send({
+          message: "Invalid Credentials",
+          status: "false",
+          sessionExist: "0",
+          response: {
+            data: {
+              id: null,
+              full_name: null,
+              email: null,
+              mobile: null,
+              token: null,
+            },
+          },
+        });
+      } else {
+        const matchPassword = await bcrypt.compare(password, found.Password);
+        const token = jwt.sign({ email: found.EmailId }, "NODEJS");
+        matchPassword
+          ? ((found.JWTToken = token),
+            await found.save(),
+            res.send({
+              message: "You are successfully logged in",
+              status: "true",
+              sessionExist: "1",
+              response: {
+                data: {
+                  id: found._id,
+                  full_name: found.Fullname,
+                  email: found.EmailId,
+                  mobile: found.Contact,
+                  token: found.JWTToken,
+                },
+              },
+            }))
+          : res.send({
+              message: "Invalid Credentials",
+              status: "false",
+              sessionExist: "0",
+              response: {
+                data: {
+                  id: null,
+                  full_name: null,
+                  email: null,
+                  mobile: null,
+                  token: null,
+                },
+              },
+            });
+      }
     } else {
-      const matchPassword = await bcrypt.compare(password, found.Password);
-      const token = jwt.sign({ email: found.EmailId }, "NODEJS");
-      matchPassword
-        ?(found.JWTToken=token, await found.save(), res.status(200).send({ msg: "Login Successfully", token: token,status:200 }))
-        : res.send({ msg: "Invaild Credentials", status:401 });
+      res.send({
+        message: "Please Enter Credentials",
+        status: "false",
+        sessionExist: "0",
+        response: {
+          data: {
+            id: null,
+            full_name: null,
+            email: null,
+            mobile: null,
+            token: null,
+          },
+        },
+      });
     }
   } catch (err) {
     console.log("Failed to login", err);
-    res.json({ msg: "Login api fail", err: err });
+    res.send({
+      message: "Login Api fail",
+      status: "false",
+      sessionExist: "0",
+      response: {
+        data: {
+          id: null,
+          full_name: null,
+          email: null,
+          mobile: null,
+          token: null,
+        },
+      },
+    });
   }
 };
-
 
 //forgot password API
 const userForgotEmail = async (req, res) => {
   const { email } = req.body;
   try {
     const userfound = await User.findOne({ EmailId: email });
-    // res.json({output:found})
     console.log(userfound);
     if (userfound) {
       const code = Math.floor(1000 + Math.random() * 9000);
@@ -117,17 +223,53 @@ const userForgotEmail = async (req, res) => {
         subject: "Reset Password Verification code",
         html: `<h4>Use this ${code} 4 digit code to reset your account Password </h4>`,
       });
-      res.json({
-        msg: "if email id found reset code has been sent to your mail id",
+
+      res.send({
+        message: "if email id found reset code has been sent to your mail id",
+        status: "true",
+        sessionExist: "0",
+        response: {
+          data: {
+            id: null,
+            full_name: null,
+            email: null,
+            mobile: null,
+            token: null,
+          },
+        },
       });
     } else {
-      res.json({
-        msg: "if email id found reset code has been sent to your mail id  ",
+      res.send({
+        message: "if email id found reset code has been sent to your mail id",
+        status: "true",
+        sessionExist: "0",
+        response: {
+          data: {
+            id: null,
+            full_name: null,
+            email: null,
+            mobile: null,
+            token: null,
+          },
+        },
       });
     }
   } catch (err) {
     console.log("Failed to get email ", err);
-    res.json({msg:"reset email api fail ",err})
+    res.send({
+      message: "forgot email api fail",
+      status: "false",
+      sessionExist: "0",
+      response: {
+        data: {
+          id: null,
+          full_name: null,
+          email: null,
+          mobile: null,
+          token: null,
+        },
+      },
+    });
   }
 };
 
@@ -138,191 +280,421 @@ const forgotOTP = async (req, res) => {
     const userfound = await User.findOne({ EmailId: email });
     console.log(userfound, otp);
     if (userfound && otp == userfound.Token) {
-      res.json({ msg: "Correct otp",status:200 });
+      res.send({
+        message: "Correct OTP",
+        status: "true",
+        sessionExist: "0",
+        response: {
+          data: {
+            id: null,
+            full_name: null,
+            email: null,
+            mobile: null,
+            token: null,
+          },
+        },
+      });
     } else {
-      res.json({ msg: "Invalid otp",status:400 });
+      res.send({
+        message: "Invalid otp",
+        status: "false",
+        sessionExist: "0",
+        response: {
+          data: {
+            id: null,
+            full_name: null,
+            email: null,
+            mobile: null,
+            token: null,
+          },
+        },
+      });
     }
   } catch (err) {
     console.log("failed to get otp", err);
-    res.json({ msg: "forgototp api fail",err });
+
+    res.send({
+      message: "forgototp api fail",
+      status: "false",
+      sessionExist: "0",
+      response: {
+        data: {
+          id: null,
+          full_name: null,
+          email: null,
+          mobile: null,
+          token: null,
+        },
+      },
+    });
   }
 };
+
+//reset password without validation rules
 
 const resetpass = async (req, res) => {
   const { email, password, cpassword } = req.body;
   try {
-    const userfound = await User.findOne({ EmailId: email });
-    console.log(userfound);
-    if (userfound) {
-      const errors = validationResult(req);
-      console.log("forgot error ", errors);
-      if (!errors.isEmpty()) {
-        var errMsg = errors.mapped();
-        var inputData = matchedData(req);
+    if (email && password && cpassword) {
+      const userfound = await User.findOne({ EmailId: email });
+      if (userfound) {
+        if (password == cpassword) {
+          userfound.Password = password;
+          await userfound.save();
+          res.send({
+            message: "Password changed Successfully",
+            status: "true",
+            sessionExist: "0",
+            response: {
+              data: {
+                id: null,
+                full_name: null,
+                email: null,
+                mobile: null,
+                token: null,
+              },
+            },
+          });
+        } else {
+          res.send({
+            message: "Password mismatch",
+            status: "false",
+            sessionExist: "0",
+            response: {
+              data: {
+                id: null,
+                full_name: null,
+                email: null,
+                mobile: null,
+                token: null,
+              },
+            },
+          });
+        }
       } else {
-        var inputData = matchedData(req);
+        res.send({
+          message: "User not found",
+          status: "false",
+          sessionExist: "0",
+          response: {
+            data: {
+              id: null,
+              full_name: null,
+              email: null,
+              mobile: null,
+              token: null,
+            },
+          },
+        });
       }
-      console.log("input Data", inputData, errMsg);
-      data={password:password,cpassword:cpassword}
-      JSON.stringify(inputData) == JSON.stringify(data)
-        ? ((userfound.Password = password),
-          await userfound.save(),
-          res.status(200).json({ msg: "Password Changed successfully", status:200 }))
-        : res.json({ err: errMsg, status:401 });
     } else {
-      res.json({ msg: "Failed to find user" });
+      res.send({
+        message: "Please Fill complete details",
+        status: "false",
+        sessionExist: "0",
+        response: {
+          data: {
+            id: null,
+            full_name: null,
+            email: null,
+            mobile: null,
+            token: null,
+          },
+        },
+      });
     }
   } catch (err) {
-    console.log("Failed to update password", err);
-    res.json({ msg: "reset password api fail", err: err });
+    res.send({
+      message: "Server error reset password  fail",
+      status: "false",
+      sessionExist: "0",
+      response: {
+        data: {
+          id: null,
+          full_name: null,
+          email: null,
+          mobile: null,
+          token: null,
+        },
+      },
+    });
   }
 };
 
 //User contactus API
 
 const contactus = async (req, res) => {
-  const { name, email, phone, message } = req.body;
+  const { name, email, contact, message } = req.body;
   try {
-    // if (name && email && phone && message) {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        var errMsg = errors.mapped();
-        var inputData = matchedData(req);
-      } else {
-        var inputData = matchedData(req);
-      }
-      if (errMsg) {
-        var allerror = {};
-        for(var key in errMsg){
-          allerror[key]=errMsg[key].msg;
-        }
-        res.status(400).json(allerror);
-      } else {
-        const enquiry = new Enquiry({
-          Name: name,
-          Email: email,
-          Phone: phone,
-          Message: message
-        });
-        await enquiry.save();
-        res.status(200).json({ msg: "Admin will Contact to you soon" });
-      }
+    if (name && email && contact && message) {
+      const enquiry = new Enquiry({
+        Name: name,
+        Email: email,
+        Phone: contact,
+        Message: message,
+      });
+      await enquiry.save();
+      res.send({
+        message: "Admin will contact to you soon",
+        status: "true",
+        sessionExist: "1",
+        response: {
+          data: {
+            id: null,
+            full_name: null,
+            email: null,
+            mobile: null,
+            token: null,
+          },
+        },
+      });
+    } else {
+      res.send({
+        message: "Please Enter all required fields",
+        status: "false",
+        sessionExist: "0",
+        response: {
+          data: {
+            id: null,
+            full_name: null,
+            email: null,
+            mobile: null,
+            token: null,
+          },
+        },
+      });
+    }
   } catch (err) {
     console.log("failed to contact", err);
-    res.status(504).json({ msg: "failed to contact", err: err });
+    res.send({
+      message: "Server error contact api fail",
+      status: "false",
+      sessionExist: "0",
+      response: {
+        data: {
+          id: null,
+          full_name: null,
+          email: null,
+          mobile: null,
+          token: null,
+        },
+      },
+    });
   }
 };
 
 //get data my acoount api
-const myaccount=async(req,res)=>{
-  try{
-    const alluser=req.user
+const myaccount = async (req, res) => {
+  try {
+    const alluser = req.user;
     // console.log(alluser.Fullname,alluser.EmailId, alluser.Contact)
+
     res.send({
-      Fullname:alluser.Fullname,
-      Contact:alluser.Contact,
-      Email:alluser.EmailId
-    })
+      message: "My account data",
+      status: "true",
+      sessionExist: "1",
+      response: {
+        data: {
+          id: alluser._id,
+          full_name: alluser.Fullname,
+          email: alluser.EmailId,
+          mobile: alluser.Contact,
+          token: alluser.JWTToken,
+        },
+      },
+    });
+  } catch (err) {
+    res.send({
+      message: "My account api fail",
+      status: "false",
+      sessionExist: "0",
+      response: {
+        data: {
+          id: null,
+          full_name: null,
+          email: null,
+          mobile: null,
+          token: null,
+        },
+      },
+    });
   }
-  catch(err){
-    res.send({msg:"My account api fail",err})
-  }
-}
+};
 
 //update data myaccount api
-const updatemyaccount=async(req,res)=>{
-  const {name,phone}=req.body;
-  try{
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      var errMsg = errors.mapped();
-      var inputData = matchedData(req);
+const updatemyaccount = async (req, res) => {
+  const { name, contact } = req.body;
+  try {
+    if (name && contact) {
+      req.user.Fullname = name;
+      req.user.Contact = contact;
+      await req.user.save();
+      res.send({
+        message: "Details Updated Successfully",
+        status: "true",
+        sessionExist: "1",
+        response: {
+          data: {
+            id: req.user._id,
+            full_name: req.user.Fullname,
+            email: req.user.EmailId,
+            mobile: req.user.Contact,
+            token: req.user.JWTToken,
+          },
+        },
+      });
     } else {
-      var inputData = matchedData(req);
+      res.send({
+        message: "Please Enter in all required fields",
+        status: "false",
+        sessionExist: "0",
+        response: {
+          data: {
+            id: null,
+            full_name: null,
+            email: null,
+            mobile: null,
+            token: null,
+          },
+        },
+      });
     }
-    if(errMsg){
-      var err={};
-      for(var key in errMsg){   
-        err[key]=errMsg[key].msg;      
-      }
-      res.send(err);
-
-    }else    
-    res.send({msg:"Your details successfully updated"})
+  } catch (err) {
+    res.send({
+      message: "Update account api fail",
+      status: "false",
+      sessionExist: "1",
+      response: {
+        data: {
+          id: null,
+          full_name: null,
+          email: null,
+          mobile: null,
+          token: null,
+        },
+      },
+    });
   }
-  catch(err){
-    res.send({msg:"update account api fail",err})
-  }
-}
-
+};
 
 //change password api
-const changepassword=async(req,res)=>{
-   try{
-    const errors=validationResult(req);
-    if(!errors.isEmpty()){
-      var errMsg=errors.mapped();
-      var inputData=matchedData(req);
-    }else{
-      var inputData=matchedData(req);
+const changepassword = async (req, res) => {
+  const { old_password, new_password, cnew_password } = req.body;
+  try {
+    if (old_password && new_password && cnew_password) {
+      const isMatch = await bcrypt.compare(old_password, req.user.Password);
+      if (isMatch) {
+        if (new_password == cnew_password) {
+          req.user.Password = new_password
+            await req.user.save(),
+            res.send({
+              message: "Password Updated successfully",
+              status: "true",
+              sessionExist: "1",
+              response: {
+                data: {
+                  id: req.user._id,
+                  full_name: req.user.Fullname,
+                  email: req.user.EmailId,
+                  mobile: req.user.Contact,
+                  token: req.user.JWTToken,
+                },
+              },
+            });
+        } else {
+          res.send({
+            message: "Please mismatch",
+            status: "false",
+            sessionExist: "0",
+            response: {
+              data: {
+                id: null,
+                full_name: null,
+                email: null,
+                mobile: null,
+                token: null,
+              },
+            },
+          });
+        }
+      } else {
+        res.send({
+          message: "You have entered current password wrong",
+          status: "false",
+          sessionExist: "0",
+          response: {
+            data: {
+              id: null,
+              full_name: null,
+              email: null,
+              mobile: null,
+              token: null,
+            },
+          },
+        });
+      }
+    } else {
+      res.send({
+        message: "Please Enter in all required fields",
+        status: "false",
+        sessionExist: "0",
+        response: {
+          data: {
+            id: null,
+            full_name: null,
+            email: null,
+            mobile: null,
+            token: null,
+          },
+        },
+      });
     }
- if(errMsg){
-  const err={};
-  for( var key in errMsg){
-    err[key]=errMsg[key].msg;
+  } catch (err) {
+    res.send({
+      message: "Change password api fail",
+      status: "false",
+      sessionExist: "0",
+      response: {
+        data: {
+          id: null,
+          full_name: null,
+          email: null,
+          mobile: null,
+          token: null,
+        },
+      },
+    });
   }
-    res.status(400).send(err);
- }
- else{
-   const isMatch=await bcrypt.compare(req.body.oldpassword,req.user.Password);
-  isMatch? (
-    req.user.Password=req.body.newpassword,
-    await req.user.save(),
-    res.send({msg:'Password Updated successfully'}) ): res.status(400).send({oldpassword:"Please enter correct old password"})
- }
-   }
-   catch(err){
-     res.send({msg:"change password api fail",err})
-   }
-}
-
-
-
-
-
+};
 
 //For admin show all user list
-const allusers=async(req,res)=>{
- User.find({},(err,data)=>{
-   if(data){
-     console.log(req.user.EmailId);
-     var alldata=data.filter(i=>i.EmailId !== req.user.EmailId)
-     res.json(alldata)
-   }
-   else{
-     res.send(err)
-   }
- })
-}
+const allusers = async (req, res) => {
+  User.find({}, (err, data) => {
+    if (data) {
+      console.log(req.user.EmailId);
+      var alldata = data.filter((i) => i.EmailId !== req.user.EmailId);
+      res.json(alldata);
+    } else {
+      res.send(err);
+    }
+  });
+};
 
 //For admin block and unblock user
-const block_Unblock_User=async(req,res)=>{
- const found=await User.findById(req.body.id);
- if(found){
-   found.Isblock=!found.Isblock;
-   await found.save();
-   if(found.Isblock){
-     res.send({msg:found.EmailId+" is blocked by admin"});
+const block_Unblock_User = async (req, res) => {
+  const found = await User.findById(req.body.id);
+  if (found) {
+    found.Isblock = !found.Isblock;
+    await found.save();
+    if (found.Isblock) {
+      res.send({ msg: found.EmailId + " is blocked by admin" });
+    } else {
+      res.send({ msg: found.EmailId + " is unblocked by admin" });
+    }
+  } else {
+    res.send({ msg: "User not found in database" });
   }
-   else{
-    res.send({msg:found.EmailId+" is unblocked by admin"});
-   }
- }
- else{
-   res.send({msg:"User not found in database"});
- }
-
-}
+};
 
 module.exports = {
   userRegister,
@@ -335,5 +707,5 @@ module.exports = {
   updatemyaccount,
   changepassword,
   allusers,
-  block_Unblock_User
+  block_Unblock_User,
 };

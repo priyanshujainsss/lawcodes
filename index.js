@@ -10,7 +10,7 @@ const app=express();
 app.use(cors())
 app.use(express.json())
 app.use(require("./Routes/user.routes"));
-app.get("/",requireAuth,(req,res)=>{
+app.get("/",(req,res)=>{
     res.send({msg:"Server is running",data:req.user})
 // console.log("app is working")
 })

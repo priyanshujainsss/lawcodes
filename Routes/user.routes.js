@@ -9,14 +9,14 @@ router.get("/auth", requireAuth, (req, res) => {
   res.status(200).send({ msg: "You are Authorisexd user" });
 });
 
-router.post("/signup", validationRule.form, controller.userRegister);
+router.post("/signup",  controller.userRegister);
 router.post("/login", controller.userLogin);
 router.post("/forgot", controller.userForgotEmail);
 router.post("/forgotOTP", controller.forgotOTP);
-router.post("/resetpass", validationRule.resetform, controller.resetpass);
+router.post("/resetpass", controller.resetpass);
 router.get("/myaccount", requireAuth, controller.myaccount);
-router.post("/updateaccount",requireAuth, validationRule.updateaccount, controller.updatemyaccount);
-router.post("/changepassword",requireAuth,validationRule.changepassword,controller.changepassword)
+router.post("/updateaccount",requireAuth, controller.updatemyaccount);
+router.post("/changepassword",requireAuth, controller.changepassword)
 
 
 //mobile app

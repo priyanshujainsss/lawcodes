@@ -45,6 +45,8 @@ exports.resetform=[
   .not().matches(/^$|\s+/).withMessage('White space not allowed'),
   
   // confirm password validation
+  check('cpassword').trim().notEmpty().withMessage('Confirm Password required'),
+   
   check('cpassword').custom((value, { req }) => {
        if (value !== req.body.password) {
              throw new Error('Password Confirmation does not match password');
